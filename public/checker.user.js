@@ -1,3 +1,15 @@
+// ==UserScript==
+// @name         Advanced Superlink Checker🦉
+// @namespace    https://twisk.fun
+// @version      1.0.0
+// @description  Auto-checker for superlinks! ( working as 21/11/25)
+// @author       DuoHacker Developers
+// @match        https://www.duolingo.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=duolingo.com
+// @grant        none
+// @license MIT
+// ==/UserScript==
+
 (function() {
   const container = document.createElement('div');
   container.id = 'duolingo-checker';
