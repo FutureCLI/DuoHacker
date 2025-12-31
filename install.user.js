@@ -9,8 +9,6 @@
 // @icon         https://github.com/helloticc/DuoHacker/blob/main/DuoHacker.png?raw=true
 // @grant        none
 // @license      MIT
-// @downloadURL https://update.greasyfork.org/scripts/551444/Duolingo%20DuoHacker.user.js
-// @updateURL https://update.greasyfork.org/scripts/551444/Duolingo%20DuoHacker.meta.js
 // ==/UserScript==
 const VERSION = "1.0.0";
 const SAFE_DELAY = 2000;
@@ -3039,7 +3037,7 @@ const initInterface = () => {
         <div id="_console_output" class="_console">
           <div class="_log_entry _info">
             <span class="_log_time">${new Date().toLocaleTimeString()}</span>
-            <span class="_log_msg">DuoHacker Lite initialized</span>
+            <span class="_log_msg">DuoHacker loaded</span>
           </div>
         </div>
       </div>
