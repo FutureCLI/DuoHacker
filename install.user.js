@@ -2,7 +2,7 @@
 // @name         DuoHacker Full Version
 // @description  The #1 Duolingo Cheat with Fastest XP & Gems Farming / High Speed Increasing Streaks and Auto Daily Quest
 // @namespace    https://twisk.fun
-// @version      1.2.0
+// @version      1.2.1
 // @author       Mint
 // @match        https://*.duolingo.com/*
 // @match        https://*.duolingo.cn/*
@@ -10,7 +10,7 @@
 // @grant        none
 // @license      MIT
 // ==/UserScript==
-const VERSION = "1.2.0";
+const VERSION = "1.2.1";
 const SAFE_DELAY = 2000;
 const FAST_DELAY = 300;
 const STORAGE_KEY = 'duohacker_accounts';
@@ -72,6 +72,21 @@ let currentLessonCount = Number(sessionData.currentLessonCount ?? 0);
 let lessonsToSolve = Number(sessionData.lessonsToSolve ?? 0);
 let autoNameEnabled = localStorage.getItem('duohacker_auto_name') !== 'false';
 let duolingoSuperEnabled = localStorage.getItem('duohacker_duolingo_super') === 'true';
+let skillId = null;
+const extractSkillId = (currentCourse) => {
+    const sections = currentCourse?.pathSectioned || [];
+    for (const section of sections) {
+        const units = section.units || [];
+        for (const unit of units) {
+            const levels = unit.levels || [];
+            for (const level of levels) {
+                const skillId = level.pathLevelMetadata?.skillId || level.pathLevelClientData?.skillId;
+                if (skillId) return skillId;
+            }
+        }
+    }
+    return null;
+};
 if (sessionData && sessionData.currentLessonCount !== undefined) {
     currentLessonCount = sessionData.currentLessonCount;
     lessonsToSolve = sessionData.lessonsToSolve;
@@ -2837,7 +2852,7 @@ const initInterface = () => {
 <div class="_option_icon">
   <img src="https://d35aaqx5ub95lt.cloudfront.net/images/profile/01ce3a817dd01842581c3d18debcbc46.svg" alt="XP10 Icon">
 </div>
-      <span>Farm XP Lite</span>
+      <span>Farm XP Global</span>
     </button>
     <button class="_option_btn" data-type="gems">
 <div class="_option_icon">
@@ -5142,64 +5157,94 @@ const updateEarnedStats = () => {
     if (elements.streak) elements.streak.textContent = totalEarned.streak;
     if (elements.lessons) elements.lessons.textContent = totalEarned.lessons.toLocaleString();
 };
-const farmXp10Once = async () => {
-    const startTime = Math.floor(Date.now() / 1000);
-    const fromLanguage = userInfo.fromLanguage;
-    const completeUrl = `https://stories.duolingo.com/api2/stories/en-${fromLanguage}-the-passport/complete`;
-    const payload = {
-        awardXp: true,
-        isFeaturedStoryInPracticeHub: false,
-        completedBonusChallenge: true,
-        mode: "READ",
-        isV2Redo: false,
-        isV2Story: false,
-        isLegendaryMode: true,
-        masterVersion: false,
-        maxScore: 100,
-        score: 0,
-        numHintsUsed: 0,
-        startTime: startTime,
-        endTime: startTime + 30,
-        fromLanguage: fromLanguage,
-        learningLanguage: userInfo.learningLanguage,
-        hasXpBoost: false,
-        happyHourBonusXp: 10,
-    };
+const farmXP110Once = async () => {
     try {
-        const response = await sendRequestWithDefaultHeaders({
-            url: completeUrl,
-            payload,
-            method: "POST"
+        const skillId = extractSkillId(userInfo?.currentCourse || {});
+
+        if (!skillId) {
+            logToConsole('❌ No skill ID found. Cannot farm 110 XP.', 'error');
+            return false;
+        }
+
+        const sessionPayload = {
+            challengeTypes: [],
+            fromLanguage: userInfo.fromLanguage,
+            learningLanguage: userInfo.learningLanguage,
+            type: "UNIT_TEST",
+            skillIds: [skillId]
+        };
+
+        const sessionRes = await fetch('https://www.duolingo.com/2017-06-30/sessions', {
+            method: 'POST',
+            headers: defaultHeaders,
+            body: JSON.stringify(sessionPayload)
         });
-        if (response.ok) {
-            const data = await response.json();
-            const earned = data?.awardedXp || 10;
+
+        if (!sessionRes.ok) {
+            logToConsole(`❌ Session create failed: ${sessionRes.status}`, 'error');
+            return false;
+        }
+
+        const sessionData = await sessionRes.json();
+        const startTime = Math.floor(Date.now() / 1000);
+        const endTime = startTime + 60;
+
+        const updatePayload = {
+            id: sessionData.id,
+            metadata: sessionData.metadata,
+            type: "UNIT_TEST",
+            fromLanguage: userInfo.fromLanguage,
+            learningLanguage: userInfo.learningLanguage,
+            challenges: [],
+            adaptiveChallenges: [],
+            sessionExperimentRecord: [],
+            experiments_with_treatment_contexts: [],
+            adaptiveInterleavedChallenges: [],
+            sessionStartExperiments: [],
+            trackingProperties: [],
+            ttsAnnotations: [],
+            heartsLeft: 0,
+            startTime: startTime,
+            enableBonusPoints: false,
+            endTime: endTime,
+            failed: false,
+            maxInLessonStreak: 9,
+            shouldLearnThings: true,
+            hasBoost: true,
+            happyHourBonusXp: 10,
+            pathLevelSpecifics: { unitIndex: 0 }
+        };
+
+        const updateRes = await fetch(`https://www.duolingo.com/2017-06-30/sessions/${sessionData.id}`, {
+            method: 'PUT',
+            headers: defaultHeaders,
+            body: JSON.stringify(updatePayload)
+        });
+
+        if (updateRes.ok) {
+            const data = await updateRes.json();
+            const earned = data?.awardedXp || data?.xpGain || 110;
             totalEarned.xp += earned;
             updateEarnedStats();
+            saveSessionData();
             logToConsole(`Earned ${earned} XP`, 'success');
             return true;
         } else {
-            logToConsole(`Failed to farm XP: ${response.status}`, 'error');
-            farmingStats.errors++;
+            logToConsole(`Update session failed: ${updateRes.status}`, 'error');
             return false;
         }
     } catch (error) {
-        logToConsole(`Error farming XP: ${error.message}`, 'error');
-        farmingStats.errors++;
+        logToConsole(`XP 110 error: ${error.message}`, 'error');
         return false;
     }
 };
-const farmXP10 = async (delayMs) => {
+const farmXP110 = async (delayMs) => {
     while (isRunning) {
-        try {
-            const success = await farmXp10Once();
-            if (success) {
-                saveSessionData();
-            }
-            await delay(delayMs);
-        } catch (error) {
-            logToConsole(`XP 10 farming error: ${error.message}`, 'error');
+        const success = await farmXP110Once();
+        if (!success) {
             await delay(delayMs * 2);
+        } else {
+            await delay(delayMs);
         }
     }
 };
@@ -5401,7 +5446,7 @@ const showGiftNotification = async () => {
         return;
     }
     modal.style.display = 'flex';
-    contentDiv.innerHTML = '<div class="_loading_spinner">⏳ Đang tải thông báo...</div>';
+    contentDiv.innerHTML = '<div class="_loading_spinner">⏳ Loading...</div>';
     try {
         const response = await fetch(NOTIFICATION_URL, { cache: "no-store" });
         if (!response.ok) {
@@ -5411,10 +5456,10 @@ const showGiftNotification = async () => {
         const cleanHtml = customMarkdownParser(markdownText);
         contentDiv.innerHTML = cleanHtml;
     } catch (error) {
-        console.error('Lỗi khi tải hoặc xử lý thông báo:', error);
+        console.error('Error load:', error);
         contentDiv.innerHTML = `<div class="_error_message">
-                                  <strong>Không thể tải thông báo.</strong>
-                                  <p>Vui lòng kiểm tra lại đường dẫn hoặc kết nối mạng.</p>
+                                  <strong>Can't load notification.</strong>
+                                  <p>Check URL or check your internet connection.</p>
                                 </div>`;
     }
 };
@@ -6185,7 +6230,7 @@ const startFarming = async () => {
                 await farmXP(delayMs);
                 break;
             case 'xp_10':
-                await farmXP10(delayMs);
+                await farmXP110(delayMs);
                 break;
             case 'gems':
                 await farmGems(delayMs);
@@ -6714,7 +6759,7 @@ const formatHeaders = (jwt) => ({
     "User-Agent": navigator.userAgent,
 });
 const getUserInfo = async (sub) => {
-    const userInfoUrl = `https://www.duolingo.com/2023-05-23/users/${sub}?fields=id,username,fromLanguage,learningLanguage,streak,totalXp,level,numFollowers,numFollowing,gems,creationDate,streakData,picture,hasPlus`;
+    const userInfoUrl = `https://www.duolingo.com/2017-06-30/users/${sub}?fields=id,username,fromLanguage,learningLanguage,streak,totalXp,level,numFollowers,numFollowing,gems,creationDate,streakData,picture,hasPlus,currentCourse{pathSectioned{units{levels{pathLevelMetadata{skillId}}}}}`;
     const response = await fetch(userInfoUrl, {
         method: "GET",
         headers: defaultHeaders,
@@ -6878,6 +6923,12 @@ const refreshUserData = async () => {
     try {
         logToConsole('Refreshing user data...', 'info');
         userInfo = await getUserInfo(sub);
+        skillId = extractSkillId(userInfo.currentCourse);
+    if (skillId) {
+        logToConsole(`SkillId detected: ${skillId}`, 'success');
+    } else {
+        logToConsole('No skillId found so will be using lower XP mode. Reload on a course page for 110 XP!', 'warning');
+    }
         updateUserInfo();
         updateAvatarDisplay();
         updateDailyQuestButtonUI();
