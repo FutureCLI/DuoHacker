@@ -6,7 +6,7 @@
 // @author       FutureCLI
 // @match        https://*.duolingo.com/*
 // @match        https://*.duolingo.cn/*
-// @icon         https://github.com/FutureCLI/DuoHacker/blob/main/Logo_TypePNG_DuoHacker.png?raw=true
+// @icon         https://github.com/FutureCLI/DuoHacker/blob/main/images/Logo_TypePNG_DuoHacker.png?raw=true
 // @license      MIT
 // @require https://raw.githubusercontent.com/FutureCLI/DuoHacker/refs/heads/main/sources/main.js
 // ==/UserScript==
