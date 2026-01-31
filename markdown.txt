@@ -1,38 +1,27 @@
 # Changelog
-
-# **🔔v1.4 – Activity History Update**
-
+# **🔔v1.5 – Course Validation Update**
 # ✨ New Features
-- **Activity History panel**
-  - Added a new panel to view **XP activity history** for an account.
-  - Displays entries as: **Earned "XX" XP** with **timestamp**, **language**, **event type**, and **skill ID**.
-  - Activity data is parsed from `language_data.<lang>.calendar[]`.
-
-- **Search activity by User ID**
-  - Added a search bar to fetch and view activity history of any user by their **who / user ID**.
-
-- **“Me” quick action**
-  - New **Me** button auto-loads the current logged-in account’s activity history.
-
-#  🧠 Data Improvements
-- Correctly maps `improvement` → XP earned.
-- Uses `datetime` (milliseconds) to render accurate local timestamps.
-- Shows **Email verified (true / false)** in the Activity History summary.
-
-#  🎨 UI / UX
-- Activity History panel is now **fully centered on screen**.
-- Improved readability with:
-  - Scrollable activity list
-  - Clear XP formatting
-  - Responsive layout (desktop & mobile)
-- Fixed layout issues causing panels to appear off-screen.
-
+- **Vi → En Course Validation**
+  - Added automatic course detection before starting **Farm XP** and **Farm All**.
+  - If your course is not **Vi → En**, a notification banner appears at the top of the screen.
+  - Banner displays your **current course** and instructs you to switch to **Vi → En** on duolingo.com.
+  - Banner **auto-dismisses after 8 seconds** or can be closed manually.
+- **Targeted validation scope**
+  - Only applies to **Farm XP (499 XP)** and **Farm All** — they use the ⁨`en-vi-the-passport`⁩ endpoint which requires Vi → En.
+  - **Farm XP Global (110 XP)**, Gems, Streak, League, and Quest are not affected.
+# 🧠 Logic Improvements
+- Course check runs **before** any API request — prevents silent failures or 404 errors.
+- Reads from ⁨`userInfo.fromLanguage`⁩ and ⁨`userInfo.learningLanguage`⁩ — no extra API calls.
+- Banner is singleton — no duplicate notifications.
+# 🎨 UI / UX
+- Duolingo-style banner with **orange/yellow gradient**, owl icon 🦉, and slide-down animation.
+- Current course shown as a **tag** (e.g. ⁨`Fr → En`⁩) next to the required ⁨`Vi → En`⁩.
+- Close button with hover effect. Responsive on desktop & mobile.
 # 🐞 Bug Fixes
-- Fixed issue where Activity History showed *“No activities catched in response”* even when data existed.
-- Fixed **“Me” button not fetching own account**.
-- Fixed invalid HTML rendering in the summary section.
-- Improved JSON handling to avoid empty or invalid response errors.
+- Fixed **Farm XP** silently failing when course was not Vi → En.
+- Fixed **Farm All** repeatedly sending failed requests on an incompatible course.
+# ⚙️ Technical
+- Added ⁨`checkViEnCourse()`⁩ guard — returns ⁨`true`⁩ if Vi → En, ⁨`false`⁩ otherwise and shows the banner.
+- Guard runs before any state mutation (⁨`isRunning`⁩, timers, UI) so a blocked start stays clean for retry.
 
-#  ⚙️ Technical
-- Switched activity source from deprecated `courses[].activity[]` to correct `language_data.*.calendar[]`.
-- More robust ID resolution for the current user.
+# Go install at #
