@@ -24,4 +24,4 @@
 - Added ⁨`checkViEnCourse()`⁩ guard — returns ⁨`true`⁩ if Vi → En, ⁨`false`⁩ otherwise and shows the banner.
 - Guard runs before any state mutation (⁨`isRunning`⁩, timers, UI) so a blocked start stays clean for retry.
 
-# Go install at #
+# Go install at [here](https://twisk.fun/install)
